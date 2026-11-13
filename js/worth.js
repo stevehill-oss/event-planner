@@ -9,7 +9,7 @@
 
 import {
   liveEvents, eventBySlug, interestOf, INTEREST, eventDateText, esc, num, gbp, plural, eventUrl, ctaLabel,
-  LINK_TARGET, wireBriefLinks, track, $, $$, contactUrl, imgTag, peek,
+  LINK_TARGET, wireBriefLinks, track, $, $$, contactUrl, imgTag, peek, PHONE,
 } from './core.js';
 import { icon } from './icons.js';
 
@@ -193,7 +193,7 @@ export function createWorth(root, ctx) {
 
         <div class="out__cta">
           ${ev ? `<a class="btn btn--gold btn--block" href="${eventUrl(ev, 'hospitality-worth-it')}" target="${LINK_TARGET}" data-brief-link="${ev.s}" data-tool="worth">${r.verdict === 'yes' ? ctaLabel(ev) : `Ask for options within ${gbp(r.ceiling)} a head`} ${icon('arrow')}</a>
-            <p class="out__fine">We copy your brief, ready to paste into the form on the ${evLabel} page.</p>`
+            <p class="out__fine">We copy your brief, ready to paste into the form on the ${evLabel} page. Or call <a href="${PHONE.href}">${PHONE.text}</a>.</p>`
             : `<button type="button" class="btn btn--gold btn--block" data-tomatch>${icon('compass')} Find an event that fits</button>
                <a class="btn btn--line btn--block" href="${contactUrl('hospitality-worth-it')}" target="${LINK_TARGET}" data-brief-link="" data-tool="worth">Ask our team for options ${icon('arrow')}</a>`}
         </div>

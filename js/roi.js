@@ -95,9 +95,9 @@ export function createRoi(root, ctx) {
   function stepper(name, label, val, min, max) {
     return `<div class="fld"><span class="fld__l" id="r-${name}">${label}</span>
       <div class="step" role="group" aria-labelledby="r-${name}">
-        <button type="button" data-st="${name}" data-d="-1" data-min="${min}" data-max="${max}" aria-label="Fewer">${icon('minus')}</button>
+        <button type="button" data-st="${name}" data-d="-1" data-min="${min}" data-max="${max}" aria-label="Fewer: ${esc(label)}">${icon('minus')}</button>
         <input name="${name}" inputmode="numeric" value="${val}" aria-labelledby="r-${name}">
-        <button type="button" data-st="${name}" data-d="1" data-min="${min}" data-max="${max}" aria-label="More">${icon('plus')}</button>
+        <button type="button" data-st="${name}" data-d="1" data-min="${min}" data-max="${max}" aria-label="More: ${esc(label)}">${icon('plus')}</button>
       </div></div>`;
   }
 
@@ -232,7 +232,7 @@ export function createRoi(root, ctx) {
             <button type="button" class="btn btn--line" data-case>${icon('print')} Business case</button>
             <button type="button" class="btn btn--line" data-copy>${icon('copy')} Copy as text</button>
           </div>
-          ${ev ? '<p class="out__fine">We copy your brief, ready to paste into the enquiry form.</p>' : `<p class="out__fine">Or call us on <a href="${PHONE.href}">${PHONE.text}</a>.</p>`}
+          <p class="out__fine">${ev ? 'We copy your brief, ready to paste into the enquiry form. ' : ''}Or call us on <a href="${PHONE.href}">${PHONE.text}</a>.</p>
         </div>
       </div>`;
 
@@ -280,7 +280,7 @@ export function createRoi(root, ctx) {
   function brief(r, ev, g) {
     return [
       `Hello, I used your hospitality planner${ev ? ` for ${ev.t} (${eventDateText(ev)})` : ''}.`,
-      `Goal: ${g.label.toLowerCase()}. ${plural(r.people, 'guest')} including ${plural(st.hosts, 'host')} from our side.`,
+      `Goal: ${g.label.toLowerCase()}. ${plural(r.people, 'guest')}${st.hosts ? `, including ${plural(st.hosts, 'host')} from our side` : ''}.`,
       `Budget: up to ${gbp(r.cpp && r.cpp <= r.ceiling ? r.cpp : r.ceiling)} per head.`,
       'Please send me the options that fit.',
     ].join('\n');

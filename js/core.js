@@ -148,12 +148,25 @@ export async function copyText(text) {
 
 // A primary call to action that copies the visitor's brief, then opens the event page.
 // The brief goes into the Message box on the enquiry form.
+// The page pauses briefly before leaving, so the visitor actually sees that the brief is copied.
+// Ctrl, cmd, shift or middle clicks open a new tab as normal.
 export function wireBriefLinks(root, getBrief) {
   $$('[data-brief-link]', root).forEach((a) => {
-    a.addEventListener('click', async () => {
-      const ok = await copyText(getBrief(a.dataset.briefLink));
-      if (ok) toast('Your brief is copied. Paste it into the Message box on the form.');
+    a.addEventListener('click', async (e) => {
+      const newTab = e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1;
+      if (!newTab) e.preventDefault();
       track('planner_enquiry_click', { tool: a.dataset.tool || '', event: a.dataset.briefLink || '' });
+      const ok = await copyText(getBrief(a.dataset.briefLink));
+      if (newTab) { if (ok) toast('Your brief is copied. Paste it into the Message box on the form.'); return; }
+      if (!ok) { window.open(a.href, a.target || '_self'); return; }
+      // Said on the button as well as the toast: inside a tall blog iframe the toast can be off screen.
+      toast('Brief copied. Paste it into the Message box on the form. Opening the page now.');
+      a.classList.add('is-going');
+      const label = a.innerHTML;
+      if (a.classList.contains('btn')) a.textContent = 'Brief copied. Paste it into the Message box';
+      setTimeout(() => window.open(a.href, a.target || '_self'), 1400);
+      // Put the button back in case the visitor returns with the back button.
+      setTimeout(() => { a.innerHTML = label; a.classList.remove('is-going'); }, 4000);
     });
   });
 }
@@ -163,7 +176,9 @@ export function wireBriefLinks(root, getBrief) {
 // Tells the host page (our blog) what happened, so its own analytics can record it.
 export function track(name, detail = {}) {
   try { if (EMBED && window.parent !== window) window.parent.postMessage({ source: 'pce-planner', type: 'event', name, detail }, '*'); } catch { /* ignore */ }
-  try { if (window.dataLayer) window.dataLayer.push({ event: name, ...detail }); } catch { /* ignore */ }
+  // "event" is the dataLayer's own name key, so an event slug in the detail goes in as event_slug.
+  const { event: slug, ...rest } = detail;
+  try { if (window.dataLayer) window.dataLayer.push({ ...rest, ...(slug !== undefined ? { event_slug: slug } : {}), event: name }); } catch { /* ignore */ }
 }
 
 // Embedded: report our height so the blog can size the iframe with no inner scrollbar.

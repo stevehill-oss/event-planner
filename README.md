@@ -29,6 +29,17 @@ Then commit and push. Finished events also drop off by themselves each day.
 - `?only=worth`: one tool, no switcher.
 - `?event=<event slug>`: preselects an event.
 
+## Embedding
+
+The iframe needs `allow="clipboard-write"`, or the brief cannot be copied inside a blog.
+
+## Tracking events (dataLayer, and postMessage to the blog when embedded)
+
+- `planner_match_step`: each Matchmaker answer (step, n, answer), for drop-off.
+- `planner_match_complete`, `planner_match_share`: shortlist shown, shortlist copied.
+- `planner_worth_result`, `planner_roi_result`, `planner_roi_case_open`.
+- `planner_enquiry_click` (tool, event_slug) and `planner_call_click` (tool).
+
 ## Rules baked in
 
 - No prices from us. Every money figure is typed by the visitor.

@@ -59,6 +59,12 @@ if (count) count.textContent = String(liveEvents().length);
 const built = $('[data-built]');
 if (built) built.textContent = BUILT;
 
+// Phone calls are enquiries too: record every tap on a phone link.
+document.addEventListener('click', (e) => {
+  const a = e.target.closest?.('a[href^="tel:"]');
+  if (a) track('planner_call_click', { tool: ($('.tab[aria-selected="true"]')?.dataset.tool) || '' });
+});
+
 const start = (location.hash || '').slice(1);
 show(['match', 'worth', 'roi'].includes(start) ? start : 'match', memory);
 startHeightReporter();

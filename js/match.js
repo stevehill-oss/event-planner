@@ -5,6 +5,7 @@
 import {
   liveEvents, interestOf, INTEREST, REGIONS, eventDateText, shortDate, imgTag, img, esc, eventUrl, ctaLabel,
   LINK_TARGET, plural, wireBriefLinks, track, scrollToEl, todayIso, $, $$, categoryUrl,
+  contactUrl, copyText, toast, PHONE,
 } from './core.js';
 import { icon } from './icons.js';
 
@@ -209,6 +210,9 @@ export function createMatch(root, ctx) {
   function focusTitle() { const t = $('.wiz__title', root); t?.focus({ preventScroll: true }); }
 
   function next() {
+    // One event per answered question, so drop-off between questions can be measured.
+    const answered = STEPS[st.step];
+    track('planner_match_step', { step: answered, n: st.step + 1, answer: valueOf(answered).join(',') || 'any' });
     if (st.step < STEPS.length - 1) { st.step += 1; renderStep(); focusTitle(); scrollToEl(root); return; }
     st.done = true;
     track('planner_match_complete', { occasion: st.occasion || '', interest: st.interest.join(','), feel: st.feel || '' });
@@ -342,6 +346,17 @@ export function createMatch(root, ctx) {
           <div class="evs">${top.map((c, i) => cardHtml(c, i, i === 0)).join('')}</div>
           ${tips.length ? `<aside class="tips"><h3>${icon('sparkle')} What to ask for when you enquire</h3><ul>${tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></aside>` : ''}
         ` : `<p class="lede">New events are added every week. Tell us what you have in mind and our team will suggest options.</p>`}
+        <aside class="help">
+          <div class="help__copy">
+            <h3>${top.length ? 'Not sure which to pick?' : 'Let our team find it for you'}</h3>
+            <p>${top.length ? 'Send us your answers and we will suggest the best fit, with the packages that suit your group.' : 'Send us your answers and we will come back with options that fit, including dates not listed yet.'}</p>
+          </div>
+          <div class="help__acts">
+            <a class="btn btn--gold" href="${contactUrl('occasion-matchmaker')}" target="${LINK_TARGET}" data-brief-link="" data-tool="match">Ask our team for options ${icon('arrow')}</a>
+            <a class="btn btn--ghost-ink" href="${PHONE.href}">${icon('phone')} ${PHONE.text}</a>
+            ${top.length ? `<button type="button" class="btn btn--ghost-ink" data-share>${icon('copy')} Copy shortlist to share</button>` : ''}
+          </div>
+        </aside>
         <div class="res__foot">
           <button type="button" class="btn btn--ghost" data-restart>${icon('refresh')} Start again</button>
           ${top[0] ? `<a class="btn btn--line" href="${categoryUrl(top[0].ev, 'occasion-matchmaker')}" target="${LINK_TARGET}">See more ${esc((top[0].ev.mn || '').toLowerCase())} events ${icon('arrow')}</a>` : ''}
@@ -353,17 +368,39 @@ export function createMatch(root, ctx) {
     $$('[data-worth]', root).forEach((b) => b.addEventListener('click', () => ctx.go('worth', { event: b.dataset.worth, guests: g ? g.min : null, occasion: st.occasion })));
     $$('[data-roi]', root).forEach((b) => b.addEventListener('click', () => ctx.go('roi', { event: b.dataset.roi, guests: g ? g.min : null, occasion: st.occasion })));
     wireBriefLinks(root, (slug) => brief(slug));
+    $('[data-share]', root)?.addEventListener('click', async () => {
+      const ok = await copyText(shortlistText(top, occ, g));
+      toast(ok ? 'Shortlist copied. Paste it into an email or chat.' : 'Copy did not work in this browser.');
+      track('planner_match_share', { occasion: st.occasion || '', count: top.length });
+    });
     $('.res__title', root)?.focus({ preventScroll: true });
   }
 
+  // A plain-text shortlist to send to a colleague or decision maker. Links go to our event pages.
+  function shortlistText(top, occ, g) {
+    const head = `Hospitality shortlist${occ ? ` for ${occ.phrase}` : ''}${g ? ` (${g.label === 'Two of us' ? '2' : g.label} people)` : ''}`;
+    const items = top.map((c, i) => {
+      const where = [c.ev.v, c.ev.c].filter(Boolean).filter((x, k, a) => !(k === 1 && a[0].includes(x))).join(', ');
+      return `${i + 1}. ${c.ev.t}, ${eventDateText(c.ev)}${where ? `, ${where}` : ''}\n   ${eventUrl(c.ev, 'occasion-matchmaker-share')}`;
+    });
+    return [head, '', ...items, '', `From Prestige Corporate Events. Call ${PHONE.text} to check packages.`].join('\n');
+  }
+
   function brief(slug) {
-    const ev = liveEvents().find((e) => e.s === slug);
+    const ev = slug ? liveEvents().find((e) => e.s === slug) : null;
     const occ = OCCASIONS.find((o) => o.id === st.occasion);
     const g = GROUPS.find((x) => x.id === st.group);
+    const feel = FEELS.find((f) => f.id === st.feel);
+    const wins = windows();
     const lines = [
-      `Hello, I used your hospitality planner and I am interested in ${ev ? ev.t : 'an event'}${ev ? ` (${eventDateText(ev)})` : ''}.`,
+      ev ? `Hello, I used your hospitality planner and I am interested in ${ev.t} (${eventDateText(ev)}).`
+        : 'Hello, I used your hospitality planner and would like some suggestions.',
       occ ? `Occasion: ${occ.label}.` : '',
       g ? `Group size: ${g.label === 'Two of us' ? '2' : g.label} people.` : '',
+      !ev && st.interest.length ? `Interested in: ${st.interest.map((i) => INTEREST[i].label.toLowerCase()).join(' or ')}.` : '',
+      feel ? `The day should feel: ${feel.label.toLowerCase()} (${feel.sub.toLowerCase()}).` : '',
+      !ev && st.when.length ? `Timing: ${st.when.map((w) => wins.find((x) => x.id === w)?.label).filter(Boolean).join(', ')}.` : '',
+      !ev && st.where.length ? `Area: ${st.where.map((w) => REGIONS.find((r) => r.id === w).label).join(', ')}.` : '',
       st.must.length ? `What matters most: ${st.must.map((m) => MUSTS.find((x) => x.id === m).label.toLowerCase()).join(' and ')}.` : '',
       'Please send me the hospitality options.',
     ];
